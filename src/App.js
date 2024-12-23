@@ -1,13 +1,13 @@
-
-import './App.css';
-import Login from './components/Login/Login';
+import Compose from "./components/Email/Compose";
+import Login from "./components/Login/Login";
 
 
 function App() {
   return (
-   <>
-   <Login/>
-   </>
+    <>
+    {/* <Login/> */}
+    <Compose/>
+    </>
   );
 }
 

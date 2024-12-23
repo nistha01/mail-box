@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import './Login.css'; // Import the CSS file
-
+import './Login.module.css'; 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,7 +9,7 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const [showError, setShowError] = useState(false);
 
-  const firebaseApiKey = 'YOUR_FIREBASE_API_KEY'; // Replace with your Firebase API Key
+  const firebaseApiKey = 'AIzaSyAIozOpaSH_7yg2mrsMEjxoQBjx3WUcPDA';
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -41,7 +40,7 @@ const Login = () => {
 
       if (response.ok) {
         setMessage(isSignup ? 'Signup successful! You can now log in.' : 'Login successful!');
-        console.log(data); // Contains user info and tokens
+        console.log(data);
       } else {
         throw new Error(data.error.message);
       }
@@ -84,7 +83,7 @@ const Login = () => {
     setShowError(true);
     setTimeout(() => {
       setShowError(false);
-    }, 3000); // Display the error for 3 seconds
+    }, 3000); 
   };
 
   return (
