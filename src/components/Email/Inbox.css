@@ -1,3 +1,45 @@
-
-
-
+/* Inbox Container */
+.inbox-container {
+    padding: 20px;
+    background-color: #f0f0f5;
+    height: 100vh;
+  }
+  
+  /* Email List */
+  .email-list {
+    margin-top: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  /* Email Item Styling */
+  .email-item {
+    background-color: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Subject, From, Content Styling */
+  .email-subject,
+  .email-from,
+  .email-content {
+    margin-bottom: 10px;
+  }
+  
+  .email-subject strong,
+  .email-from strong,
+  .email-content strong {
+    font-weight: bold;
+    color: #333;
+  }
+  
+  /* When there are no emails */
+  p {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+  }
+  

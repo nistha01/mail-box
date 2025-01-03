@@ -1,143 +1,168 @@
 import React, { useState } from 'react';
-import './Login.module.css'; 
+import { useDispatch } from 'react-redux';
+import { setLogin, setGmail } from '../Auth/AuthSlice';
+import styles from './Login.module.css'; // Importing modular CSS
+
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isSignup, setIsSignup] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [message, setMessage] = useState('');
-  const [showError, setShowError] = useState(false);
+  const [state, setState] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    isUser: true,
+    isForgotPassword: false,
+    errorMessage: '', // Added error message state
+  });
+  const dispatch = useDispatch();
 
-  const firebaseApiKey = 'AIzaSyAIozOpaSH_7yg2mrsMEjxoQBjx3WUcPDA';
-
-  const handleAuth = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (isSignup && password !== confirmPassword) {
-      showErrorToaster('Passwords do not match!');
+    const urlUp = 'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDCfkrx8bQrchJe5LP4XYkkRbMqqgM7d_Q';
+    const urlIn = 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDCfkrx8bQrchJe5LP4XYkkRbMqqgM7d_Q';
+    const urlForgot = 'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=AIzaSyDCfkrx8bQrchJe5LP4XYkkRbMqqgM7d_Q';
+
+    if (state.isForgotPassword) {
+      const payload = { requestType: 'PASSWORD_RESET', email: state.email };
+      const response = await postCalltoGetToken(urlForgot, payload, 'POST');
+      if (response) {
+        alert('Password reset email sent!');
+        setState({ ...state, isForgotPassword: false, email: '', errorMessage: '' });
+      }
       return;
     }
 
-    const url = isSignup
-      ? `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}`
-      : `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseApiKey}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(isSignup ? 'Signup successful! You can now log in.' : 'Login successful!');
-        console.log(data);
-      } else {
-        throw new Error(data.error.message);
+    const payload = {
+      email: state.email,
+      password: state.password,
+      returnSecureToken: true,
+    };
+    if (state.isUser) {
+      const loginData = await postCalltoGetToken(urlIn, payload, 'POST');
+      if (!loginData || !loginData.idToken) {
+        dispatch(setLogin(false));
+        setState({ ...state, errorMessage: 'Login Failed. Please check your credentials.' });
+        return;
       }
-    } catch (error) {
-      showErrorToaster(error.message);
+      dispatch(setLogin(true));
+      dispatch(setGmail(state.email));
+      localStorage.setItem('authToken', loginData.idToken);
+      localStorage.setItem('email', state.email);
+    } else {
+      if (state.password !== state.confirmPassword) {
+        setState({ ...state, errorMessage: 'Passwords do not match' });
+        return;
+      }
+
+      const signupData = await postCalltoGetToken(urlUp, payload, 'POST');
+      if (signupData && signupData.idToken) {
+        dispatch(setLogin(true));
+        localStorage.setItem('authToken', signupData.idToken);
+        localStorage.setItem('email', state.email);
+        dispatch(setGmail(state.email));
+      } else {
+        setState({ ...state, errorMessage: 'Sign-up Failed. Please try again.' });
+      }
     }
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-
-    const url = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`;
-
+  const postCalltoGetToken = async (url, payload, method) => {
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          requestType: 'PASSWORD_RESET',
-          email,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage('Password reset email sent!');
-      } else {
-        throw new Error(data.error.message);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error.message || 'Request failed');
       }
+
+      return await response.json();
     } catch (error) {
-      showErrorToaster(error.message);
+      setState({ ...state, errorMessage: error.message });
+      return null;
     }
   };
 
-  const showErrorToaster = (error) => {
-    setMessage(error);
-    setShowError(true);
-    setTimeout(() => {
-      setShowError(false);
-    }, 3000); 
+  const toggleForm = () => {
+    setState({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      isUser: !state.isUser,
+      isForgotPassword: false,
+      errorMessage: '', // Reset error message
+    });
+  };
+
+  const toggleForgotPassword = () => {
+    setState({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      isUser: true,
+      isForgotPassword: !state.isForgotPassword,
+      errorMessage: '', // Reset error message
+    });
   };
 
   return (
-    <div className="auth-container">
-      {showError && <div className="error-toaster">{message}</div>}
-      <h2>{isForgotPassword ? 'Forgot Password' : isSignup ? 'Sign Up' : 'Login'}</h2>
-      <form onSubmit={isForgotPassword ? handleForgotPassword : handleAuth} className="auth-form">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="auth-input"
-          required
-        />
-        {!isForgotPassword && (
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="auth-input"
-            required
-          />
-        )}
-        {isSignup && (
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="auth-input"
-            required
-          />
-        )}
-        {!isForgotPassword && (
-          <button type="submit" className="auth-button">
-            {isSignup ? 'Sign Up' : 'Login'}
+    <div className={styles.container}>
+      <div className={styles.formContainer}>
+        <h2>{state.isForgotPassword ? 'Forgot Password' : state.isUser ? 'Login' : 'Sign Up'}</h2>
+        <form onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
+            <label>Email:</label>
+            <input
+              type="email"
+              value={state.email}
+              onChange={(e) => setState({ ...state, email: e.target.value })}
+              required
+            />
+          </div>
+          {!state.isForgotPassword && (
+            <>
+              <div className={styles.formGroup}>
+                <label>Password:</label>
+                <input
+                  type="password"
+                  value={state.password}
+                  onChange={(e) => setState({ ...state, password: e.target.value })}
+                  required
+                />
+              </div>
+              {!state.isUser && (
+                <div className={styles.formGroup}>
+                  <label>Confirm Password:</label>
+                  <input
+                    type="password"
+                    value={state.confirmPassword}
+                    onChange={(e) => setState({ ...state, confirmPassword: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
+            </>
+          )}
+          {state.errorMessage && <div className={styles.error}>{state.errorMessage}</div>}
+          <button type="submit" className={styles.submitBtn}>
+            {state.isForgotPassword ? 'Send Reset Link' : state.isUser ? 'Login' : 'Sign Up'}
           </button>
+        </form>
+        {!state.isForgotPassword && (
+          <>
+            <button onClick={toggleForm} className={styles.toggleBtn}>
+              {state.isUser ? 'New user? Sign Up' : 'Already a user? Login'}
+            </button>
+            <button onClick={toggleForgotPassword} className={styles.forgotBtn}>
+              Forgot Password?
+            </button>
+          </>
         )}
-        {isForgotPassword && (
-          <button type="submit" className="auth-button">
-            Send Reset Email
-          </button>
-        )}
-      </form>
-      {!isForgotPassword && (
-        <p className="auth-link" onClick={() => setIsSignup(!isSignup)}>
-          {isSignup ? 'Already have an account? Login' : 'Don’t have an account? Sign up'}
-        </p>
-      )}
-      <p className="auth-link" onClick={() => setIsForgotPassword(!isForgotPassword)}>
-        {isForgotPassword ? 'Back to Login' : 'Forgot Password?'}
-      </p>
+      </div>
     </div>
   );
 };

@@ -3,22 +3,44 @@ import { Editor } from "react-draft-wysiwyg";
 import { EditorState } from "draft-js";
 import "./Compose.css";
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import { useSelector } from "react-redux";
+import { database } from '../DataBase/FireBaseConfig';
+import { ref, push } from "firebase/database";
 
 const Compose = () => {
+  const gmail = useSelector((state) => state.auth.gmail);
+
   const [editorState, setEditorState] = useState(EditorState.createEmpty());
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
+  const [from] = useState(gmail);
 
   const onEditorStateChange = (newState) => {
     setEditorState(newState);
   };
 
   const sendEmail = () => {
-    console.log("Sending Email...");
-    console.log("To:", to);
-    console.log("Subject:", subject);
-    console.log("Content:", editorState.getCurrentContent().getPlainText());
-    alert("Email Sent!");
+    const content = editorState.getCurrentContent().getPlainText();
+    const timestamp = new Date().toISOString();
+
+    const emailData = {
+      to,
+      from,
+      subject,
+      content,
+      timestamp,
+    };
+
+    const emailRef = ref(database, "emails");
+    push(emailRef, emailData)
+      .then(() => {
+        alert("Email Sent and Stored!");
+        cancelEmail();
+      })
+      .catch((error) => {
+        console.error("Error sending email:", error);
+        alert("Failed to send email. Please try again.");
+      });
   };
 
   const cancelEmail = () => {
@@ -28,16 +50,7 @@ const Compose = () => {
   };
 
   return (
-    <div className="email-container">
-      {/* Sidebar */}
-      <nav className="sidebar">
-        <ul>
-          <li>Inbox</li>
-          <li>Sent</li>
-          <li>Compose</li>
-        </ul>
-      </nav>
-
+    <div className="compose-container">
       {/* Email Editor */}
       <div className="email-editor">
         <div className="email-editor-header">Compose Email</div>
@@ -72,7 +85,7 @@ const Compose = () => {
         />
       </div>
 
-      {/* Fixed Footer Buttons */}
+      {/* Footer Buttons */}
       <div className="email-editor-footer">
         <button className="cancel-button" onClick={cancelEmail}>
           Cancel
